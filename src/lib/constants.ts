@@ -6,6 +6,10 @@ export const COMPANY = {
     { name: "Mr. Manimaran", number: "+91 70106 58326" },
     { name: "Mr. Chiranjeevi", number: "+91 76038 05054" },
   ],
+  whatsapp: [
+    { name: "Mr. Manimaran", number: "+91 70106 58326", waNumber: "917010658326" },
+    { name: "Mr. Chiranjeevi", number: "+91 76038 05054", waNumber: "917603805054" },
+  ],
   email: "srikrishnalabels19@gmail.com",
   address: "35/4, Geetha Complex, Near Dheivam Theatre, Subash School Road, Murugampalayam, Tirupur - 641 687, Tamil Nadu, India",
   addressLines: [
@@ -156,3 +160,46 @@ export const DIFFERENTIATORS = [
     icon: "Leaf",
   },
 ];
+
+export function generateInquiryRefId(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let randomStr = "";
+  for (let i = 0; i < 4; i++) {
+    randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `SKL-${randomStr}`;
+}
+
+export interface ClientInquiryPayload {
+  refId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  productInterest?: string;
+  message: string;
+  submittedAt?: string;
+}
+
+export function buildWhatsAppInquiryUrl(phone: string, data: ClientInquiryPayload): string {
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const lines = [
+    `*🔔 NEW CLIENT INQUIRY — SRI KRISHNA LABELS*`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `📋 *Reference ID:* ${data.refId}`,
+    `👤 *Client Name:* ${data.name}`,
+    data.company ? `🏢 *Company:* ${data.company}` : null,
+    data.phone ? `📞 *Phone:* ${data.phone}` : null,
+    data.email ? `✉️ *Email:* ${data.email}` : null,
+    data.productInterest ? `🏷️ *Product Category:* ${data.productInterest}` : null,
+    `📝 *Requirements / Message:*`,
+    `${data.message}`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `⏱️ *Time:* ${data.submittedAt || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
+    `🌐 *Source:* srikrishnalabels.com Contact Form`
+  ].filter(Boolean);
+
+  const text = encodeURIComponent(lines.join('\n'));
+  return `https://wa.me/${cleanPhone}?text=${text}`;
+}
+
