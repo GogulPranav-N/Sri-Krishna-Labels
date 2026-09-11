@@ -45,7 +45,6 @@ export default function ContactPage() {
     message: '',
   });
 
-  const [openWhatsAppOnSubmit, setOpenWhatsAppOnSubmit] = useState(true);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
@@ -77,11 +76,6 @@ export default function ContactPage() {
 
       setSubmissionResult(data);
       setStatus('success');
-
-      // If user enabled auto-WhatsApp, open in a new tab
-      if (openWhatsAppOnSubmit && data.whatsappLinks?.manimaran) {
-        window.open(data.whatsappLinks.manimaran, '_blank', 'noopener,noreferrer');
-      }
     } catch (err: any) {
       setStatus('error');
       setErrorMessage(err.message || 'Something went wrong. Please try again or call us directly.');
@@ -182,55 +176,36 @@ export default function ContactPage() {
                       </p>
                     </div>
 
-                    {/* Fast-Track Actions (Direct WhatsApp Reach) */}
-                    <div className="space-y-3 pt-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <Sparkles size={14} className="text-[#C5961A]" />
-                          Fast-Track Response (Recommended)
-                        </span>
-                        <span className="text-[11px] text-emerald-600 font-semibold">Instant reply</span>
+                    {/* Immediate SLA Notice */}
+                    <div className="bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-4 text-xs text-emerald-950 space-y-1.5">
+                      <div className="flex items-center gap-2 font-bold text-emerald-800 text-sm">
+                        <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                        Inquiry Received by Factory Leadership
                       </div>
+                      <p className="leading-relaxed text-emerald-900/80">
+                        Our management team has received your order details. We will review your requirements and reach out to you directly via <strong>{submissionResult.leadData.preferredContact === 'whatsapp' ? 'WhatsApp' : submissionResult.leadData.preferredContact === 'email' ? 'Email' : 'Phone Call'}</strong> within <strong>2–4 business hours</strong>.
+                      </p>
+                    </div>
 
-                      {/* Primary WhatsApp to Mr. Manimaran */}
-                      <a
-                        href={submissionResult.whatsappLinks.manimaran}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white font-bold py-3.5 px-5 rounded-xl transition-all shadow-md hover:shadow-lg text-sm"
-                      >
-                        <MessageSquare size={19} />
-                        <span>Chat on WhatsApp with Mr. Manimaran</span>
-                        <ExternalLink size={14} className="opacity-80 ml-auto" />
-                      </a>
-
-                      {/* Secondary WhatsApp to Mr. Chiranjeevi */}
-                      <a
-                        href={submissionResult.whatsappLinks.chiranjeevi}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center gap-2.5 bg-white hover:bg-gray-50 text-[#1B2A4A] border border-gray-300 font-semibold py-3 px-5 rounded-xl transition-colors shadow-xs text-sm"
-                      >
-                        <MessageSquare size={17} className="text-[#25D366]" />
-                        <span>Chat on WhatsApp with Mr. Chiranjeevi</span>
-                        <ExternalLink size={14} className="opacity-60 ml-auto" />
-                      </a>
-
-                      {/* Quick Call Row */}
-                      <div className="grid grid-cols-2 gap-2.5 pt-1">
+                    {/* Quick Call Row for Urgent Inquiries */}
+                    <div className="pt-1">
+                      <span className="text-xs font-bold text-gray-700 uppercase tracking-wider block mb-2">
+                        Need Immediate Assistance? Speak Directly With Our Partners:
+                      </span>
+                      <div className="grid grid-cols-2 gap-2.5">
                         <a
                           href="tel:+917010658326"
                           className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-[#1B2A4A] text-xs font-semibold rounded-lg transition-colors border border-gray-200/60"
                         >
                           <Phone size={13} className="text-[#C5961A]" />
-                          Call Manimaran
+                          Call Mr. Manimaran
                         </a>
                         <a
                           href="tel:+917603805054"
                           className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-gray-100 hover:bg-gray-200 text-[#1B2A4A] text-xs font-semibold rounded-lg transition-colors border border-gray-200/60"
                         >
                           <Phone size={13} className="text-[#C5961A]" />
-                          Call Chiranjeevi
+                          Call Mr. Chiranjeevi
                         </a>
                       </div>
                     </div>
@@ -482,19 +457,6 @@ export default function ContactPage() {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5961A] focus:border-[#C5961A] outline-none transition-all resize-none text-sm"
                         ></textarea>
                       </div>
-
-                      {/* Instant WhatsApp Prompt Option */}
-                      <label className="flex items-start gap-2.5 p-3 rounded-lg bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100/70 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={openWhatsAppOnSubmit}
-                          onChange={(e) => setOpenWhatsAppOnSubmit(e.target.checked)}
-                          className="mt-0.5 rounded text-[#C5961A] focus:ring-[#C5961A] accent-[#C5961A] h-4 w-4"
-                        />
-                        <span className="text-xs text-gray-600 leading-normal">
-                          <strong className="text-gray-800">Priority WhatsApp Dispatch:</strong> Connect directly on WhatsApp with Mr. Manimaran with this inquiry pre-filled after submission for instant reply.
-                        </span>
-                      </label>
 
                       <button
                         type="submit"
