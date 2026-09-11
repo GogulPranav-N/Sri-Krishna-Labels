@@ -19,12 +19,14 @@ async function sendTelegramAlert(leadData: ClientInquiryPayload, submittedAt: st
   }
 
   const cleanPhone = (leadData.phone || '').replace(/[^0-9]/g, '');
+  const pref = (leadData.preferredContact || 'whatsapp').toUpperCase();
 
   const text = [
     `🚨 <b>NEW CLIENT INQUIRY — SRI KRISHNA LABELS</b>`,
     `━━━━━━━━━━━━━━━━━━━━━━━━`,
     `📋 <b>Ref ID:</b> <code>#${leadData.refId}</code>`,
     `👤 <b>Client:</b> <b>${escapeHtml(leadData.name)}</b>`,
+    `🎯 <b>Preferred Reply:</b> <b>${pref === 'WHATSAPP' ? '🟢 WHATSAPP' : pref === 'EMAIL' ? '✉️ EMAIL' : '📞 PHONE CALL'}</b>`,
     leadData.company ? `🏢 <b>Company:</b> ${escapeHtml(leadData.company)}` : null,
     leadData.phone ? `📞 <b>Phone:</b> <code>${escapeHtml(leadData.phone)}</code>` : null,
     `✉️ <b>Email:</b> <code>${escapeHtml(leadData.email)}</code>`,
@@ -40,22 +42,31 @@ async function sendTelegramAlert(leadData: ClientInquiryPayload, submittedAt: st
     .join('\n');
 
   const inlineKeyboard: Array<Array<{ text: string; url: string }>> = [];
-  const actionRow: Array<{ text: string; url: string }> = [];
+  const primaryRow: Array<{ text: string; url: string }> = [];
+  const secondaryRow: Array<{ text: string; url: string }> = [];
 
-  if (cleanPhone) {
-    actionRow.push({
-      text: '💬 WhatsApp Client',
-      url: `https://wa.me/${cleanPhone}`,
+  if (leadData.preferredContact === 'email') {
+    primaryRow.push({
+      text: '✉️ Reply via Email',
+      url: `mailto:${leadData.email}?subject=${encodeURIComponent(`Sri Krishna Labels - Quote for Inquiry #${leadData.refId}`)}`,
     });
-    actionRow.push({
-      text: '📞 Call Client',
-      url: `tel:${cleanPhone}`,
+    if (cleanPhone) {
+      secondaryRow.push({ text: '💬 WhatsApp', url: `https://wa.me/${cleanPhone}` });
+      secondaryRow.push({ text: '📞 Call', url: `tel:${cleanPhone}` });
+    }
+  } else {
+    if (cleanPhone) {
+      primaryRow.push({ text: '💬 WhatsApp Client', url: `https://wa.me/${cleanPhone}` });
+      primaryRow.push({ text: '📞 Call Client', url: `tel:${cleanPhone}` });
+    }
+    secondaryRow.push({
+      text: '✉️ Email Client',
+      url: `mailto:${leadData.email}?subject=${encodeURIComponent(`Sri Krishna Labels - Quote for Inquiry #${leadData.refId}`)}`,
     });
   }
 
-  if (actionRow.length > 0) {
-    inlineKeyboard.push(actionRow);
-  }
+  if (primaryRow.length > 0) inlineKeyboard.push(primaryRow);
+  if (secondaryRow.length > 0) inlineKeyboard.push(secondaryRow);
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -96,6 +107,7 @@ async function sendEmailAlert(leadData: ClientInquiryPayload, submittedAt: strin
         to_email: COMPANY.email,
         'Inquiry Reference ID': `#${leadData.refId}`,
         'Client Full Name': leadData.name,
+        'Preferred Reply Method': (leadData.preferredContact || 'whatsapp').toUpperCase(),
         'Company / Brand': leadData.company || 'Not Specified',
         'Phone Number': leadData.phone || 'Not Provided',
         'Email Address': leadData.email,
@@ -139,7 +151,7 @@ function saveInquiryLocally(leadData: ClientInquiryPayload) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, phone, company, productInterest, message } = body;
+    const { name, email, phone, company, productInterest, preferredContact, message } = body;
 
     // Validation
     if (!name || typeof name !== 'string' || !name.trim()) {
@@ -170,6 +182,9 @@ export async function POST(request: Request) {
       timeStyle: 'short',
     });
 
+    const validPref: 'whatsapp' | 'email' | 'phone' =
+      preferredContact === 'email' ? 'email' : preferredContact === 'phone' ? 'phone' : 'whatsapp';
+
     const leadData: ClientInquiryPayload = {
       refId,
       name: name.trim(),
@@ -177,6 +192,7 @@ export async function POST(request: Request) {
       phone: phone ? phone.trim() : undefined,
       company: company ? company.trim() : undefined,
       productInterest: productInterest ? productInterest.trim() : undefined,
+      preferredContact: validPref,
       message: message.trim(),
       submittedAt,
     };

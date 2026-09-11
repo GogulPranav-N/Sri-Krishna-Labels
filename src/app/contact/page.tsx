@@ -41,6 +41,7 @@ export default function ContactPage() {
     phone: '',
     company: '',
     productInterest: '',
+    preferredContact: 'whatsapp' as 'whatsapp' | 'email' | 'phone',
     message: '',
   });
 
@@ -97,6 +98,7 @@ export default function ContactPage() {
       phone: '',
       company: '',
       productInterest: '',
+      preferredContact: 'whatsapp',
       message: '',
     });
   };
@@ -260,6 +262,16 @@ export default function ContactPage() {
                             <span className="text-gray-900">{submissionResult.leadData.phone}</span>
                           </div>
                         )}
+                        <div>
+                          <span className="font-medium text-gray-400">Preferred Reply: </span>
+                          <span className="font-semibold text-emerald-700">
+                            {submissionResult.leadData.preferredContact === 'whatsapp'
+                              ? '🟢 WhatsApp'
+                              : submissionResult.leadData.preferredContact === 'email'
+                              ? '✉️ Email'
+                              : '📞 Phone Call'}
+                          </span>
+                        </div>
                       </div>
                       {submissionResult.leadData.productInterest && (
                         <div className="text-gray-600 pt-1">
@@ -363,6 +375,7 @@ export default function ContactPage() {
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
+                            required={formData.preferredContact === 'whatsapp' || formData.preferredContact === 'phone'}
                             placeholder="+91 98765 43210"
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5961A] focus:border-[#C5961A] outline-none transition-all text-sm"
                           />
@@ -380,6 +393,55 @@ export default function ContactPage() {
                             placeholder="e.g. Apex Apparels"
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#C5961A] focus:border-[#C5961A] outline-none transition-all text-sm"
                           />
+                        </div>
+                      </div>
+
+                      {/* Preferred Contact Method Selector */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Preferred Follow-up Method <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, preferredContact: 'whatsapp' }))}
+                            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
+                              formData.preferredContact === 'whatsapp'
+                                ? 'bg-emerald-50 border-[#25D366] text-emerald-800 ring-2 ring-[#25D366]/20 shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <MessageSquare size={16} className={formData.preferredContact === 'whatsapp' ? 'text-[#25D366]' : 'text-gray-400'} />
+                            <span>WhatsApp</span>
+                            <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">Fastest</span>
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, preferredContact: 'email' }))}
+                            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
+                              formData.preferredContact === 'email'
+                                ? 'bg-blue-50 border-blue-500 text-blue-800 ring-2 ring-blue-500/20 shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <Mail size={16} className={formData.preferredContact === 'email' ? 'text-blue-500' : 'text-gray-400'} />
+                            <span>Email</span>
+                            <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold">Quote PDF</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, preferredContact: 'phone' }))}
+                            className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 p-2.5 rounded-lg border text-xs font-semibold transition-all ${
+                              formData.preferredContact === 'phone'
+                                ? 'bg-amber-50 border-[#C5961A] text-[#1B2A4A] ring-2 ring-[#C5961A]/20 shadow-xs'
+                                : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                            }`}
+                          >
+                            <Phone size={16} className={formData.preferredContact === 'phone' ? 'text-[#C5961A]' : 'text-gray-400'} />
+                            <span>Phone Call</span>
+                          </button>
                         </div>
                       </div>
 

@@ -177,6 +177,7 @@ export interface ClientInquiryPayload {
   phone?: string;
   company?: string;
   productInterest?: string;
+  preferredContact?: 'whatsapp' | 'email' | 'phone';
   message: string;
   submittedAt?: string;
 }
@@ -191,6 +192,7 @@ export function buildWhatsAppInquiryUrl(phone: string, data: ClientInquiryPayloa
     data.company ? `🏢 *Company:* ${data.company}` : null,
     data.phone ? `📞 *Phone:* ${data.phone}` : null,
     data.email ? `✉️ *Email:* ${data.email}` : null,
+    data.preferredContact ? `🎯 *Preferred Reply Via:* ${data.preferredContact.toUpperCase()}` : null,
     data.productInterest ? `🏷️ *Product Category:* ${data.productInterest}` : null,
     `📝 *Requirements / Message:*`,
     `${data.message}`,
