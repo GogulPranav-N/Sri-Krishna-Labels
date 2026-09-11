@@ -89,12 +89,55 @@ async function sendTelegramAlert(leadData: ClientInquiryPayload, submittedAt: st
   }
 }
 
+async function sendWhatsAppAdminAlert(leadData: ClientInquiryPayload, submittedAt: string) {
+  const adminPhone = process.env.ADMIN_WHATSAPP_PHONE;
+  const apiKey = process.env.ADMIN_WHATSAPP_APIKEY;
+
+  if (!adminPhone || !apiKey) {
+    return { success: false, reason: 'ADMIN_WHATSAPP_PHONE or ADMIN_WHATSAPP_APIKEY not configured.' };
+  }
+
+  const cleanPhone = adminPhone.replace(/[^0-9]/g, '');
+  const pref = (leadData.preferredContact || 'whatsapp').toUpperCase();
+
+  const messageText = [
+    `🚨 *NEW CLIENT INQUIRY — SRI KRISHNA LABELS*`,
+    `Ref ID: #${leadData.refId}`,
+    `Client Name: ${leadData.name}`,
+    `Preferred Reply: ${pref}`,
+    leadData.company ? `Company: ${leadData.company}` : null,
+    leadData.phone ? `Phone: ${leadData.phone}` : null,
+    `Email: ${leadData.email}`,
+    leadData.productInterest ? `Product: ${leadData.productInterest}` : null,
+    `Time: ${submittedAt}`,
+    ``,
+    `Requirements:`,
+    leadData.message,
+    leadData.phone ? `Chat with client: https://wa.me/${leadData.phone.replace(/[^0-9]/g, '')}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  try {
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${cleanPhone}&text=${encodeURIComponent(messageText)}&apikey=${apiKey}`;
+    const res = await fetch(url);
+    const text = await res.text();
+    const isSuccess = text.toLowerCase().includes('message sent') || res.ok;
+    return { success: isSuccess, response: text };
+  } catch (err: any) {
+    console.error('CallMeBot WhatsApp alert error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 async function sendEmailAlert(leadData: ClientInquiryPayload, submittedAt: string) {
   const accessKey = process.env.WEB3FORMS_ACCESS_KEY || process.env.WEB3FORMS_KEY;
 
   if (!accessKey) {
     return { success: false, reason: 'WEB3FORMS_ACCESS_KEY not configured in environment.' };
   }
+
+  const recipientEmail = process.env.ADMIN_EMAIL || COMPANY.email;
 
   try {
     const res = await fetch('https://api.web3forms.com/submit', {
@@ -104,7 +147,7 @@ async function sendEmailAlert(leadData: ClientInquiryPayload, submittedAt: strin
         access_key: accessKey,
         subject: `🚨 New Client Lead [#${leadData.refId}]: ${leadData.name} (${leadData.company || 'Direct Client'})`,
         from_name: 'Sri Krishna Labels Website',
-        to_email: COMPANY.email,
+        to_email: recipientEmail,
         'Inquiry Reference ID': `#${leadData.refId}`,
         'Client Full Name': leadData.name,
         'Preferred Reply Method': (leadData.preferredContact || 'whatsapp').toUpperCase(),
@@ -200,10 +243,11 @@ export async function POST(request: Request) {
     // 1. Save lead to local disk backup
     saveInquiryLocally(leadData);
 
-    // 2. Dispatch automated notifications concurrently
-    const [telegramResult, emailResult] = await Promise.all([
+    // 2. Dispatch automated notifications concurrently (Telegram, Email, WhatsApp)
+    const [telegramResult, emailResult, whatsappResult] = await Promise.all([
       sendTelegramAlert(leadData, submittedAt),
       sendEmailAlert(leadData, submittedAt),
+      sendWhatsAppAdminAlert(leadData, submittedAt),
     ]);
 
     // 3. Construct direct WhatsApp URLs for Mr. Manimaran and Mr. Chiranjeevi
@@ -218,15 +262,17 @@ export async function POST(request: Request) {
     // 4. Log structured lead to server stdout
     console.log('\n======================================================');
     console.log('🚨 NEW CLIENT INQUIRY RECEIVED & AUTO-PROCESSED');
-    console.log(`Reference ID:      #${refId}`);
-    console.log(`Client Name:       ${leadData.name}`);
-    console.log(`Company:           ${leadData.company || 'N/A'}`);
-    console.log(`Phone:             ${leadData.phone || 'N/A'}`);
-    console.log(`Email:             ${leadData.email}`);
-    console.log(`Product:           ${leadData.productInterest || 'General Inquiry'}`);
-    console.log(`Submitted At:      ${submittedAt}`);
-    console.log(`Email Dispatched:  ${emailResult.success ? 'YES ✓' : 'SKIPPED (Needs WEB3FORMS_ACCESS_KEY)'}`);
-    console.log(`Telegram Pushed:   ${telegramResult.success ? 'YES ✓' : 'SKIPPED (Needs TELEGRAM_BOT_TOKEN)'}`);
+    console.log(`Reference ID:        #${refId}`);
+    console.log(`Client Name:         ${leadData.name}`);
+    console.log(`Preferred Reply:     ${leadData.preferredContact?.toUpperCase()}`);
+    console.log(`Company:             ${leadData.company || 'N/A'}`);
+    console.log(`Phone:               ${leadData.phone || 'N/A'}`);
+    console.log(`Email:               ${leadData.email}`);
+    console.log(`Product:             ${leadData.productInterest || 'General Inquiry'}`);
+    console.log(`Submitted At:        ${submittedAt}`);
+    console.log(`Email Dispatched:    ${emailResult.success ? 'YES ✓' : 'SKIPPED (Needs WEB3FORMS_ACCESS_KEY)'}`);
+    console.log(`Telegram Pushed:     ${telegramResult.success ? 'YES ✓' : 'SKIPPED (Needs TELEGRAM_BOT_TOKEN)'}`);
+    console.log(`WhatsApp Alert Sent: ${whatsappResult.success ? 'YES ✓' : 'SKIPPED (Needs ADMIN_WHATSAPP_PHONE & APIKEY)'}`);
     console.log('Requirements:');
     console.log(leadData.message);
     console.log('======================================================\n');
@@ -240,6 +286,7 @@ export async function POST(request: Request) {
       notifications: {
         email: emailResult.success,
         telegram: telegramResult.success,
+        whatsapp: whatsappResult.success,
       },
       message: 'Inquiry received successfully! Our team has been notified.',
     });
