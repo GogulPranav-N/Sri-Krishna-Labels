@@ -131,37 +131,61 @@ async function sendWhatsAppAdminAlert(leadData: ClientInquiryPayload, submittedA
 }
 
 async function sendEmailAlert(leadData: ClientInquiryPayload, submittedAt: string) {
-  const accessKey = process.env.WEB3FORMS_ACCESS_KEY || process.env.WEB3FORMS_KEY;
+  const accessKeys = Array.from(
+    new Set(
+      [
+        process.env.WEB3FORMS_ACCESS_KEY,
+        process.env.WEB3FORMS_ACCESS_KEY_2,
+        process.env.WEB3FORMS_KEY,
+        process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY,
+      ]
+        .flatMap((k) => (k ? k.split(',') : []))
+        .map((k) => k.trim())
+        .filter(Boolean)
+    )
+  );
 
-  if (!accessKey) {
+  if (accessKeys.length === 0) {
     return { success: false, reason: 'WEB3FORMS_ACCESS_KEY not configured in environment.' };
   }
 
   const recipientEmail = process.env.ADMIN_EMAIL || COMPANY.email;
 
   try {
-    const res = await fetch('https://api.web3forms.com/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        access_key: accessKey,
-        subject: `🚨 New Client Lead [#${leadData.refId}]: ${leadData.name} (${leadData.company || 'Direct Client'})`,
-        from_name: 'Sri Krishna Labels Website',
-        to_email: recipientEmail,
-        'Inquiry Reference ID': `#${leadData.refId}`,
-        'Client Full Name': leadData.name,
-        'Preferred Reply Method': (leadData.preferredContact || 'whatsapp').toUpperCase(),
-        'Company / Brand': leadData.company || 'Not Specified',
-        'Phone Number': leadData.phone || 'Not Provided',
-        'Email Address': leadData.email,
-        'Product Category': leadData.productInterest || 'General Inquiry',
-        'Client Requirements': leadData.message,
-        'Submission Timestamp': submittedAt,
-      }),
-    });
+    const results = await Promise.allSettled(
+      accessKeys.map(async (key) => {
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            access_key: key,
+            subject: `🚨 New Client Lead [#${leadData.refId}]: ${leadData.name} (${leadData.company || 'Direct Client'})`,
+            from_name: 'Sri Krishna Labels Website',
+            to_email: recipientEmail,
+            'Inquiry Reference ID': `#${leadData.refId}`,
+            'Client Full Name': leadData.name,
+            'Preferred Reply Method': (leadData.preferredContact || 'whatsapp').toUpperCase(),
+            'Company / Brand': leadData.company || 'Not Specified',
+            'Phone Number': leadData.phone || 'Not Provided',
+            'Email Address': leadData.email,
+            'Product Category': leadData.productInterest || 'General Inquiry',
+            'Client Requirements': leadData.message,
+            'Submission Timestamp': submittedAt,
+          }),
+        });
+        return res.json();
+      })
+    );
 
-    const data = await res.json();
-    return { success: data.success, data };
+    const successfulDispatches = results.filter(
+      (r) => r.status === 'fulfilled' && (r as PromiseFulfilledResult<any>).value?.success
+    );
+
+    return {
+      success: successfulDispatches.length > 0,
+      totalDispatched: accessKeys.length,
+      successfulCount: successfulDispatches.length,
+    };
   } catch (err: any) {
     console.error('Email dispatch error via Web3Forms:', err);
     return { success: false, error: err.message };

@@ -77,15 +77,25 @@ export default function ContactPage() {
       setSubmissionResult(data);
       setStatus('success');
 
-      // Dispatch automated email notification to admin via Web3Forms (Free client-side API)
-      const web3Key =
-        process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY || '2bcb296f-f04a-4992-87e9-cf00084f0aff';
-      if (web3Key) {
+      // Dispatch automated email notification to all configured admin recipients via Web3Forms
+      const configuredKeys = Array.from(
+        new Set(
+          [
+            process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY || '2bcb296f-f04a-4992-87e9-cf00084f0aff',
+            process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY_2,
+          ]
+            .flatMap((k) => (k ? k.split(',') : []))
+            .map((k) => k.trim())
+            .filter(Boolean)
+        )
+      );
+
+      configuredKeys.forEach((key) => {
         fetch('https://api.web3forms.com/submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
-            access_key: web3Key,
+            access_key: key,
             subject: `🚨 New Client Lead [#${data.refId}]: ${formData.name} (${formData.company || 'Direct Client'})`,
             from_name: 'Sri Krishna Labels Website',
             to_email: COMPANY.email,
@@ -98,8 +108,8 @@ export default function ContactPage() {
             'Product Interest': formData.productInterest || 'General Inquiry',
             'Order Requirements': formData.message,
           }),
-        }).catch((err) => console.warn('Web3Forms dispatch warning:', err));
-      }
+        }).catch((err) => console.warn('Web3Forms dispatch warning for key:', key, err));
+      });
     } catch (err: any) {
       setStatus('error');
       setErrorMessage(err.message || 'Something went wrong. Please try again or call us directly.');
