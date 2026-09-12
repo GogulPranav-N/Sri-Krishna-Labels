@@ -76,6 +76,30 @@ export default function ContactPage() {
 
       setSubmissionResult(data);
       setStatus('success');
+
+      // Dispatch automated email notification to admin via Web3Forms (Free client-side API)
+      const web3Key =
+        process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY || '2bcb296f-f04a-4992-87e9-cf00084f0aff';
+      if (web3Key) {
+        fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            access_key: web3Key,
+            subject: `🚨 New Client Lead [#${data.refId}]: ${formData.name} (${formData.company || 'Direct Client'})`,
+            from_name: 'Sri Krishna Labels Website',
+            to_email: COMPANY.email,
+            'Inquiry Ref ID': `#${data.refId}`,
+            'Client Name': formData.name,
+            'Company / Brand': formData.company || 'Not Specified',
+            'Phone Number': formData.phone || 'Not Provided',
+            'Email Address': formData.email,
+            'Preferred Reply Method': (formData.preferredContact || 'whatsapp').toUpperCase(),
+            'Product Interest': formData.productInterest || 'General Inquiry',
+            'Order Requirements': formData.message,
+          }),
+        }).catch((err) => console.warn('Web3Forms dispatch warning:', err));
+      }
     } catch (err: any) {
       setStatus('error');
       setErrorMessage(err.message || 'Something went wrong. Please try again or call us directly.');
